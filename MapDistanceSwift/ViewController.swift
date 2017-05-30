@@ -10,10 +10,10 @@ import UIKit
 import MapKit
 
 class ViewController: UIViewController {
-    let LAT1 = "Put LAT1"
-    let LON1 = "Put LON1"
-    let LAT2 = "Put LAT2"
-    let LON2 = "Put LON2"
+    let LAT1 = "Replace by LAT1"
+    let LON1 = "Replace by LON1"
+    let LAT2 = "Replace by LAT2"
+    let LON2 = "Replace by LON2"
     @IBOutlet fileprivate var mapView: MKMapView!
     fileprivate var routeLine: MKPolyline?
     fileprivate var renderer: MKPolylineRenderer?
@@ -52,7 +52,8 @@ class ViewController: UIViewController {
         if pinView == nil {
             pinView = MKAnnotationView(annotation: annotation, reuseIdentifier: defaultPinID)
         }
-        if (annotation.title??.contains(" - "))! {
+        
+        if annotation.coordinate.latitude != LAT1 &&  annotation.coordinate.latitude != LAT2{
             pinView?.canShowCallout = false
             let img = UIImage(named: "DistanceBackground")
             pinView?.image = ViewController.drawText(distanceBetweenLocations(), in: img!, at:
@@ -65,25 +66,36 @@ class ViewController: UIViewController {
     }
 
     func createAndAddAnnotation(forCoordinate coordinate: CLLocationCoordinate2D) {
+        let geoCoder = CLGeocoder()
         let annotationPoint = MKPointAnnotation()
         annotationPoint.coordinate = coordinate
         if(centerOfLine().latitude == coordinate.latitude && centerOfLine().longitude ==
             coordinate.longitude) {
-        annotationPoint.title = "Place 1 - Place 2"
-        annotationPoint.subtitle = distanceBetweenLocations()
+            annotationPoint.title = "Place 1 - Place 2"
+            annotationPoint.subtitle = distanceBetweenLocations()
         } else {
-            if coordinate.latitude == LAT1 {
-                annotationPoint.title = "Place 1"
-                annotationPoint.subtitle = "Start"
-            } else {
-                annotationPoint.title = "Place 2"
-                annotationPoint.subtitle = "End"
-            }
+            geoCoder.reverseGeocodeLocation(CLLocation.init(latitude: coordinate.latitude,
+                                                            longitude: coordinate.longitude),
+                                            completionHandler: { (placeMarks, error) in
+
+                                                if coordinate.latitude == self.LAT1 {
+                                                    annotationPoint.title = "Place 1"
+                                                } else {
+                                                    annotationPoint.title = "Place 2"
+                                                }
+                                                if placeMarks?.count == 0 {
+                                                    annotationPoint.subtitle = "Unknown place"
+                                                } else {
+                                                    let placemark:CLPlacemark = placeMarks![0]
+                                                    annotationPoint.subtitle = placemark.subLocality
+
+                                                }
+            })
         }
         mapView.addAnnotation(annotationPoint)
         annotationPoint.coordinate = coordinate
-        mapView.selectAnnotation(annotationPoint, animated: false)
     }
+
     func distanceBetweenLocations() -> String {
         let newLocation = CLLocation(latitude: LAT1, longitude: LON1)
         let oldLocation = CLLocation(latitude: LAT2, longitude: LON2)
